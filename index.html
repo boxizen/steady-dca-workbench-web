@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>稳序 · 定投记录与测算</title>
+  <style>
+    :root {
+      --ink: #18251f;
+      --muted: #6d7872;
+      --paper: #f3f5f0;
+      --card: #ffffff;
+      --line: #e3e8e1;
+      --green: #176b4d;
+      --green-dark: #0e4e38;
+      --green-soft: #e7f2ec;
+      --gold: #b37a24;
+      --gold-soft: #faf1df;
+      --red: #b64747;
+      --red-soft: #fbecec;
+      --blue: #396b8c;
+      --shadow: 0 10px 35px rgba(27, 52, 40, .06);
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 5% 0%, rgba(208, 226, 211, .55), transparent 26rem),
+        var(--paper);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    .topbar {
+      height: 72px;
+      padding: 0 clamp(18px, 4vw, 56px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      background: rgba(250, 251, 248, .86);
+      border-bottom: 1px solid rgba(215, 224, 215, .85);
+      backdrop-filter: blur(16px);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .brand-mark {
+      width: 38px; height: 38px; border-radius: 12px;
+      display: grid; place-items: center;
+      background: var(--green); color: white;
+      box-shadow: 0 7px 18px rgba(23, 107, 77, .2);
+      font-weight: 800; letter-spacing: -2px;
+    }
+    .brand-title { font-weight: 750; letter-spacing: .04em; }
+    .brand-sub { color: var(--muted); font-size: 12px; white-space: nowrap; }
+    .top-actions { display: flex; gap: 8px; align-items: center; }
+    .container { max-width: 1420px; margin: 0 auto; padding: 34px clamp(16px, 4vw, 52px) 48px; }
+    .hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 26px; }
+    .eyebrow { color: var(--green); font-size: 12px; letter-spacing: .14em; font-weight: 750; text-transform: uppercase; }
+    h1 { margin: 5px 0 5px; font-size: clamp(26px, 3vw, 38px); line-height: 1.25; letter-spacing: -.03em; }
+    .hero p { margin: 0; color: var(--muted); }
+    .plan-switch { display: flex; padding: 5px; border-radius: 14px; background: #e6ebe4; flex-shrink: 0; }
+    .plan-switch button {
+      border: 0; background: transparent; color: var(--muted); padding: 10px 16px;
+      border-radius: 10px; transition: .18s ease; white-space: nowrap;
+    }
+    .plan-switch button.active { background: white; color: var(--green-dark); box-shadow: 0 3px 12px rgba(25, 52, 39, .08); font-weight: 650; }
+    .tabs { display: flex; gap: 26px; border-bottom: 1px solid var(--line); margin-bottom: 24px; overflow-x: auto; }
+    .tab {
+      border: 0; background: none; padding: 0 2px 13px; color: var(--muted); white-space: nowrap;
+      border-bottom: 2px solid transparent; margin-bottom: -1px;
+    }
+    .tab.active { color: var(--green); border-color: var(--green); font-weight: 700; }
+    .page { display: none; animation: fade .2s ease; }
+    .page.active { display: block; }
+    @keyframes fade { from { opacity: .5; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; }
+    .card { background: var(--card); border: 1px solid rgba(222, 229, 221, .9); border-radius: var(--radius); box-shadow: var(--shadow); }
+    .stat { padding: 21px 22px; position: relative; overflow: hidden; }
+    .stat::after { content: ""; position: absolute; right: -20px; top: -30px; width: 85px; height: 85px; border-radius: 50%; background: var(--green-soft); opacity: .65; }
+    .stat-label { color: var(--muted); font-size: 13px; position: relative; z-index: 1; }
+    .stat-value { font-size: clamp(22px, 2.2vw, 29px); line-height: 1.25; font-weight: 750; letter-spacing: -.035em; margin-top: 8px; position: relative; z-index: 1; }
+    .stat-note { color: var(--muted); font-size: 12px; margin-top: 6px; position: relative; z-index: 1; }
+    .positive { color: var(--green) !important; }
+    .negative { color: var(--red) !important; }
+    .grid-2 { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(300px, 1fr); gap: 18px; margin-bottom: 18px; }
+    .grid-equal { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+    .panel { padding: 23px; min-width: 0; }
+    .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 18px; }
+    .panel-title { margin: 0; font-size: 16px; letter-spacing: -.01em; }
+    .panel-sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .btn {
+      border: 1px solid var(--line); border-radius: 10px; padding: 8px 13px;
+      background: white; color: var(--ink); transition: .16s ease; white-space: nowrap;
+    }
+    .btn:hover { border-color: #b7c7bb; background: #f9fbf8; }
+    .btn.primary { background: var(--green); color: white; border-color: var(--green); }
+    .btn.primary:hover { background: var(--green-dark); }
+    .btn.ghost { border-color: transparent; background: transparent; color: var(--muted); }
+    .btn.danger { color: var(--red); }
+    .btn.small { padding: 4px 8px; font-size: 12px; }
+    .icon-btn { width: 36px; height: 36px; padding: 0; display: grid; place-items: center; }
+    .progress-block { margin: 18px 0 22px; }
+    .progress-meta { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 7px; }
+    .progress-meta span:last-child { color: var(--muted); font-size: 12px; }
+    .progress-track { height: 8px; background: #edf0eb; border-radius: 10px; overflow: hidden; }
+    .progress-bar { height: 100%; border-radius: inherit; background: var(--green); width: 0; transition: width .4s ease; }
+    .progress-bar.gold { background: var(--gold); }
+    .allocation { display: flex; height: 12px; overflow: hidden; border-radius: 12px; margin: 14px 0 12px; background: #eee; }
+    .allocation span:nth-child(1) { background: var(--green); }
+    .allocation span:nth-child(2) { background: #8eb9a3; }
+    .allocation span:nth-child(3) { background: #d7c39f; }
+    .legend { display: flex; flex-wrap: wrap; gap: 12px; color: var(--muted); font-size: 12px; }
+    .legend i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; }
+    .mini-list { border-top: 1px solid var(--line); margin-top: 18px; padding-top: 8px; }
+    .mini-row { display: flex; justify-content: space-between; gap: 15px; padding: 8px 0; }
+    .mini-row span { color: var(--muted); }
+    .mini-row strong { text-align: right; font-weight: 650; }
+    .table-wrap { overflow-x: auto; margin: 0 -8px; }
+    table { border-collapse: collapse; width: 100%; min-width: 610px; }
+    th { color: var(--muted); font-size: 12px; font-weight: 550; text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    td { padding: 12px 8px; border-bottom: 1px solid #edf0eb; vertical-align: middle; }
+    tbody tr:last-child td { border-bottom: 0; }
+    .number { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .empty { text-align: center; color: var(--muted); padding: 34px 12px !important; }
+    .asset-name { font-weight: 650; }
+    .asset-ticker { color: var(--muted); font-size: 11px; margin-top: 1px; }
+    .price-input { width: 105px; padding: 6px 8px !important; text-align: right; }
+    .badge { display: inline-flex; padding: 3px 8px; border-radius: 20px; font-size: 11px; background: var(--green-soft); color: var(--green-dark); white-space: nowrap; }
+    .badge.gold { background: var(--gold-soft); color: #8b5c17; }
+    .badge.gray { background: #eff1ee; color: var(--muted); }
+    .notice { padding: 12px 14px; border-radius: 12px; background: var(--gold-soft); color: #77541e; font-size: 12px; margin-bottom: 16px; }
+    .notice.green { background: var(--green-soft); color: var(--green-dark); }
+    .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field.full { grid-column: 1 / -1; }
+    .field label { color: var(--muted); font-size: 12px; }
+    input, select {
+      width: 100%; border: 1px solid #dce3db; border-radius: 10px; background: #fbfcfa;
+      color: var(--ink); padding: 9px 11px; outline: none; transition: .15s ease;
+    }
+    input:focus, select:focus { border-color: #73a38c; box-shadow: 0 0 0 3px rgba(23, 107, 77, .08); background: white; }
+    input[type="checkbox"] { width: auto; }
+    .form-actions { display: flex; align-items: center; gap: 10px; margin-top: 18px; }
+    .form-hint { color: var(--muted); font-size: 11px; margin-top: 12px; }
+    .hidden { display: none !important; }
+    .scenario-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 18px; }
+    .scenario { padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: #fbfcfa; }
+    .scenario.featured { border-color: #a8c8b5; background: var(--green-soft); }
+    .scenario-label { color: var(--muted); font-size: 12px; }
+    .scenario-value { font-size: 21px; font-weight: 750; margin: 6px 0; letter-spacing: -.025em; }
+    .scenario-detail { font-size: 11px; color: var(--muted); }
+    .chart-box { height: 260px; margin-top: 10px; }
+    .chart-box svg { width: 100%; height: 100%; overflow: visible; }
+    .chart-grid { stroke: #e6ebe4; stroke-width: 1; }
+    .chart-line { fill: none; stroke: var(--green); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    .chart-area { fill: url(#areaGradient); }
+    .chart-text { fill: var(--muted); font-size: 11px; }
+    .tool-head { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; margin-bottom: 18px; }
+    .tool-head .field { min-width: 140px; flex: 1; }
+    .tool-head .btn { margin-bottom: 1px; }
+    .trigger-row.triggered { background: var(--green-soft); }
+    .result-box { border-radius: 14px; padding: 20px; background: var(--green-soft); margin-top: 18px; }
+    .result-box strong { display: block; font-size: 24px; line-height: 1.35; margin: 4px 0; }
+    .footer { color: var(--muted); text-align: center; font-size: 11px; margin-top: 28px; }
+    .toast { position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 20px); padding: 11px 18px; border-radius: 12px; background: #1e2e26; color: white; box-shadow: 0 12px 30px rgba(0,0,0,.2); opacity: 0; pointer-events: none; transition: .2s ease; z-index: 50; }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    dialog { border: 0; border-radius: 18px; padding: 24px; max-width: 430px; color: var(--ink); box-shadow: 0 25px 80px rgba(0,0,0,.25); }
+    dialog::backdrop { background: rgba(14, 31, 22, .35); backdrop-filter: blur(3px); }
+    @media (max-width: 1050px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .grid-2 { grid-template-columns: 1fr; }
+      .grid-equal { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 680px) {
+      .topbar { height: 64px; padding: 0 14px; }
+      .brand-sub, .top-actions .btn-label { display: none; }
+      .container { padding: 24px 13px 36px; }
+      .hero { align-items: flex-start; flex-direction: column; gap: 16px; }
+      .plan-switch { width: 100%; }
+      .plan-switch button { flex: 1; padding: 9px 8px; }
+      .stats { gap: 10px; }
+      .stat { padding: 16px; }
+      .stat-value { font-size: 20px; }
+      .panel { padding: 17px; }
+      .scenario-grid { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      .field.full { grid-column: auto; }
+    }
+    @media print {
+      .topbar, .hero, .tabs, .btn, .footer { display: none !important; }
+      .container { padding: 0; }
+      .page { display: block !important; break-after: page; }
+      .card { box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">稳</div>
+      <div><div class="brand-title">稳序 · 定投工作台</div><div class="brand-sub">本地记录，长期纪律，拒绝情绪择时</div></div>
+    </div>
+    <div class="top-actions">
+      <button class="btn" id="exportJson" title="导出全部记录与设置"><span>↓</span> <span class="btn-label">备份</span></button>
+      <button class="btn" id="importJson" title="从 JSON 备份恢复"><span>↑</span> <span class="btn-label">恢复</span></button>
+      <input type="file" id="importFile" accept="application/json,.json" class="hidden">
+      <button class="btn icon-btn danger" id="resetData" title="清空全部本地数据">⌫</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div>
+        <div class="eyebrow">Investment journal</div>
+        <h1>把计划交给规则，把记录留给时间。</h1>
+        <p id="planDescription">嘉信美元资产 · 48 个月建仓 · 标普／纳指 80/20</p>
+      </div>
+      <div class="plan-switch" aria-label="选择投资计划">
+        <button data-plan="us" class="active">嘉信美元计划</button>
+        <button data-plan="cn">人民币红利计划</button>
+      </div>
+    </section>
+
+    <nav class="tabs" aria-label="功能导航">
+      <button class="tab active" data-tab="overview">投资总览</button>
+      <button class="tab" data-tab="transactions">交易记录</button>
+      <button class="tab" data-tab="projection">收益预测</button>
+      <button class="tab" data-tab="tools">回撤与再平衡</button>
+    </nav>
+
+    <section class="page active" id="page-overview">
+      <div id="missingPriceNotice" class="notice hidden"></div>
+      <div class="stats">
+        <div class="card stat"><div class="stat-label">累计买入成本</div><div class="stat-value" id="statInvested">—</div><div class="stat-note" id="statNetInvested">净投入 —</div></div>
+        <div class="card stat"><div class="stat-label">当前持仓市值</div><div class="stat-value" id="statValue">—</div><div class="stat-note">按持仓表中最新价格计算</div></div>
+        <div class="card stat"><div class="stat-label">累计总收益</div><div class="stat-value" id="statPnl">—</div><div class="stat-note" id="statReturn">含卖出、分红与利息</div></div>
+        <div class="card stat"><div class="stat-label">资金加权年化收益率</div><div class="stat-value" id="statXirr">—</div><div class="stat-note">XIRR · 考虑实际现金流日期</div></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card panel">
+          <div class="panel-head"><div><h2 class="panel-title">当前持仓</h2><div class="panel-sub">在价格列更新估值，价格仅保存在本机</div></div><button class="btn small" id="quickAdd">＋ 记一笔</button></div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>标的</th><th class="number">持有份额</th><th class="number">平均成本</th><th class="number">最新价格</th><th class="number">市值</th><th class="number">浮动收益</th></tr></thead>
+            <tbody id="positionsBody"></tbody>
+          </table></div>
+        </div>
+
+        <div class="card panel">
+          <div class="panel-head"><div><h2 class="panel-title">计划进度</h2><div class="panel-sub" id="planBudgetLabel">按预设资金方案</div></div><span class="badge" id="planCurrency">USD</span></div>
+          <div class="progress-block"><div class="progress-meta"><strong>基础定投</strong><span id="baseProgressText">0%</span></div><div class="progress-track"><div class="progress-bar" id="baseProgressBar"></div></div><div class="panel-sub" id="baseProgressAmount"></div></div>
+          <div class="progress-block"><div class="progress-meta"><strong>回撤储备</strong><span id="reserveProgressText">0%</span></div><div class="progress-track"><div class="progress-bar gold" id="reserveProgressBar"></div></div><div class="panel-sub" id="reserveProgressAmount"></div></div>
+          <div class="mini-list">
+            <div class="mini-row"><span>每月基础投入</span><strong id="monthlyBudget">—</strong></div>
+            <div class="mini-row"><span>永久短债／计划外储备</span><strong id="permanentBudget">—</strong></div>
+            <div class="mini-row"><span>已实现卖出及现金收益</span><strong id="realizedIncome">—</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card panel">
+        <div class="panel-head"><div><h2 class="panel-title">最近记录</h2><div class="panel-sub">实际成交与计划分开，未执行的定投不计入收益</div></div><button class="btn small" data-go="transactions">查看全部 →</button></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>日期</th><th>标的</th><th>类型</th><th>用途</th><th class="number">金额</th><th class="number">份额</th></tr></thead>
+          <tbody id="recentBody"></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <section class="page" id="page-transactions">
+      <div class="grid-2">
+        <div class="card panel">
+          <div class="panel-head"><div><h2 class="panel-title" id="formTitle">记一笔交易</h2><div class="panel-sub">买入金额为成交金额，费用单独填写</div></div><span class="badge gray">仅本机保存</span></div>
+          <form id="transactionForm">
+            <input type="hidden" id="editingId">
+            <div class="form-grid">
+              <div class="field"><label for="txDate">日期</label><input type="date" id="txDate" required></div>
+              <div class="field"><label for="txType">记录类型</label><select id="txType"><option value="buy">买入</option><option value="sell">卖出</option><option value="income">现金分红／利息</option></select></div>
+              <div class="field full"><label for="txAsset">投资标的</label><select id="txAsset" required></select></div>
+              <div class="field full hidden" id="customAssetFields"><label for="txCustomAsset">新标的名称</label><input type="text" id="txCustomAsset" placeholder="例如：标普 500 ETF · VOO"><input type="text" id="txCustomTicker" placeholder="代码（选填）" style="margin-top:8px"></div>
+              <div class="field" id="purposeField"><label for="txPurpose">资金用途</label><select id="txPurpose"><option value="base">基础定投</option><option value="reserve">回撤加仓</option><option value="permanent">永久短债</option><option value="other">其他</option></select></div>
+              <div class="field"><label for="txAmount">成交金额</label><input type="number" id="txAmount" min="0" step="0.01" required placeholder="0.00"></div>
+              <div class="field" id="quantityField"><label for="txQuantity">成交份额</label><input type="number" id="txQuantity" min="0" step="0.000001" placeholder="买入／卖出时填写"></div>
+              <div class="field"><label for="txFee">费用</label><input type="number" id="txFee" min="0" step="0.01" value="0"></div>
+              <div class="field full"><label for="txNote">备注（选填）</label><input type="text" id="txNote" maxlength="100" placeholder="例如：-10% 第一档，或 9 月常规定投"></div>
+            </div>
+            <div class="form-actions"><button type="submit" class="btn primary" id="saveTransaction">保存记录</button><button type="button" class="btn hidden" id="cancelEdit">取消编辑</button><span class="panel-sub" id="calculatedPrice"></span></div>
+            <div class="form-hint">现金分红不计入持仓份额；若将分红再投资，请再新增一笔买入。卖出按移动平均成本法减少剩余成本。</div>
+          </form>
+        </div>
+
+        <div class="card panel">
+          <div class="panel-head"><div><h2 class="panel-title">记录说明</h2><div class="panel-sub">让未来复盘能还原每一次决定</div></div></div>
+          <div class="notice green">建议每月固定一天记录实际成交。计划金额只是预算，只有点击“保存记录”后才会计入收益。</div>
+          <div class="mini-list">
+            <div class="mini-row"><span>基础定投</span><strong>计入基础建仓进度</strong></div>
+            <div class="mini-row"><span>回撤加仓</span><strong>计入储备使用进度</strong></div>
+            <div class="mini-row"><span>现金分红／利息</span><strong>计入总收益与 XIRR</strong></div>
+            <div class="mini-row"><span>价格更新</span><strong>只影响估值，不改变成本</strong></div>
+          </div>
+          <div style="margin-top:20px"><button class="btn" id="exportCsv">导出当前计划 CSV</button></div>
+        </div>
+      </div>
+
+      <div class="card panel">
+        <div class="panel-head"><div><h2 class="panel-title">全部交易</h2><div class="panel-sub" id="transactionCount">0 条记录</div></div></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>日期</th><th>标的</th><th>类型</th><th>用途</th><th class="number">金额</th><th class="number">份额</th><th class="number">费用</th><th>备注</th><th></th></tr></thead>
+          <tbody id="transactionsBody"></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <section class="page" id="page-projection">
+      <div class="grid-2">
+        <div class="card panel">
+          <div class="panel-head"><div><h2 class="panel-title">定投收益情景</h2><div class="panel-sub">月末投入、按月复利，仅用于规划而非预测</div></div><button class="btn small" id="usePlanProjection">使用当前计划</button></div>
+          <div class="form-grid">
+            <div class="field"><label for="projectionInitial">初始投入</label><input type="number" id="projectionInitial" min="0" step="100"></div>
+            <div class="field"><label for="projectionMonthly">每月投入</label><input type="number" id="projectionMonthly" min="0" step="100"></div>
+            <div class="field"><label for="projectionYears">投入年限</label><input type="number" id="projectionYears" min="0" max="50" step="1"></div>
+            <div class="field"><label for="projectionLow">谨慎情景年化 %</label><input type="number" id="projectionLow" step="0.5"></div>
+            <div class="field"><label for="projectionBase">中性情景年化 %</label><input type="number" id="projectionBase" step="0.5"></div>
+            <div class="field"><label for="projectionHigh">乐观情景年化 %</label><input type="number" id="projectionHigh" step="0.5"></div>
+          </div>
+          <div class="scenario-grid" id="scenarioGrid"></div>
+          <div class="form-hint">公式：初始资金复利终值＋每月月末投入的等额年金终值。未计费用、税、汇率与实际买入时点差异。</div>
+        </div>
+        <div class="card panel">
+          <div class="panel-head"><div><h2 class="panel-title">中性情景积累路径</h2><div class="panel-sub" id="chartCaption">市值与累计本金对比</div></div></div>
+          <div class="chart-box" id="projectionChart"></div>
+          <div class="legend"><span><i style="background:var(--green)"></i>预估市值</span><span><i style="background:#bdc7bf"></i>累计本金</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page" id="page-tools">
+      <div class="card panel" style="margin-bottom:18px">
+        <div class="panel-head"><div><h2 class="panel-title">回撤加仓触发测算</h2><div class="panel-sub">按参考高点计算，实际执行以收盘价确认</div></div><span class="badge gold" id="reserveBadge">储备 —</span></div>
+        <div class="tool-head">
+          <div class="field"><label for="drawdownIndex">指数预设</label><select id="drawdownIndex"><option value="sp">标普 500</option><option value="ndx">纳斯达克 100</option><option value="csi">中证红利</option></select></div>
+          <div class="field"><label for="drawdownHigh">参考高点</label><input type="number" id="drawdownHigh" min="0" step="0.01"></div>
+          <div class="field"><label for="drawdownCurrent">当前点位</label><input type="number" id="drawdownCurrent" min="0" step="0.01"></div>
+          <button class="btn" id="resetDrawdown">恢复预设</button>
+        </div>
+        <div class="notice" id="drawdownSummary">—</div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>回撤档位</th><th class="number">触发点位</th><th class="number">本档预算</th><th>当前状态</th></tr></thead>
+          <tbody id="drawdownBody"></tbody>
+        </table></div>
+        <div class="form-hint">触发仅代表达到既定买入条件，不代表市场见底。创新高后请更新参考高点；同一高点周期每档只执行一次。</div>
+      </div>
+
+      <div class="grid-equal">
+        <div class="card panel">
+          <div class="panel-head"><div><h2 class="panel-title">再平衡测算</h2><div class="panel-sub">计算恢复目标权益比例所需调整金额</div></div></div>
+          <div class="form-grid">
+            <div class="field"><label for="rebalanceEquity">当前权益市值</label><input type="number" id="rebalanceEquity" min="0" step="100"></div>
+            <div class="field"><label for="rebalanceCash">当前短债／现金</label><input type="number" id="rebalanceCash" min="0" step="100"></div>
+            <div class="field full"><label for="rebalanceTarget">目标权益比例 %</label><input type="number" id="rebalanceTarget" min="0" max="100" step="1"></div>
+          </div>
+          <div class="result-box"><span class="panel-sub">建议调整</span><strong id="rebalanceResult">—</strong><span class="panel-sub" id="rebalanceDetail">输入后自动计算</span></div>
+        </div>
+        <div class="card panel">
+          <div class="panel-head"><div><h2 class="panel-title">执行提醒</h2><div class="panel-sub">把纪律放在市场波动之前</div></div></div>
+          <div class="mini-list">
+            <div class="mini-row"><span>基础定投</span><strong>每月固定执行</strong></div>
+            <div class="mini-row"><span>回撤资金</span><strong>只买触发标的</strong></div>
+            <div class="mini-row"><span>两个标的都触发</span><strong>买后恢复 80/20</strong></div>
+            <div class="mini-row"><span>建仓完成后</span><strong>半年或偏离 5% 检查</strong></div>
+            <div class="mini-row"><span>永久短债</span><strong>不用于抄底</strong></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer">数据保存在浏览器 localStorage，不会上传。测算不构成收益承诺；清除浏览器数据前请先导出 JSON 备份。</div>
+  </main>
+
+  <dialog id="resetDialog">
+    <h2 class="panel-title">清空全部本地数据？</h2>
+    <p class="panel-sub">将删除两个计划的交易记录、自定义标的和价格。此操作无法撤销，建议先导出备份。</p>
+    <div class="form-actions"><button class="btn danger" id="confirmReset">确认清空</button><button class="btn" id="cancelReset">取消</button></div>
+  </dialog>
+  <div class="toast" id="toast" role="status"></div>
+
+  <script src="./calculations.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>

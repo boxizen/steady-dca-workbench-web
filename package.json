@@ -1,0 +1,10 @@
+{
+  "name": "steady-dca-workbench",
+  "version": "1.0.0",
+  "private": true,
+  "description": "本地定投记录、XIRR、收益情景与回撤加仓测算",
+  "scripts": {
+    "dev": "node server.mjs",
+    "test": "node test-calculations.cjs"
+  }
+}
