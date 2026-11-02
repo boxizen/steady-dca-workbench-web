@@ -62,7 +62,6 @@ app.js                 页面交互、本地状态和导入导出
 calculations.js        收益、XIRR、回撤和再平衡计算
 server.mjs             可选的本地静态开发服务器
 test-calculations.cjs  计算测试
-.github/workflows/     GitHub Pages 自动部署配置
 ```
 
 ## 部署
